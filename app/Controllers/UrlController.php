@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 // We will use these models later:
 use App\Models\UrlModel;
 // use App\Models\UserModel;
+// Add this line with the other 'use' statements
+use CodeIgniter\Exceptions\PageNotFoundException;
 
 class UrlController extends BaseController
 {
@@ -43,7 +45,7 @@ class UrlController extends BaseController
         ];
 
         // 2. Run Validation
-        if (! $this->validate($validationRules)) {
+        if (!$this->validate($validationRules)) {
             // Validation failed, redirect back to the form with errors
             // Pass validation errors and old input data back to the view
             return redirect()->back()->withInput()->with('validation', $this->validator);
@@ -55,14 +57,14 @@ class UrlController extends BaseController
         // --- Optional: Check if URL already exists (to avoid duplicates) ---
         $urlModel = new UrlModel();
         $existing = $urlModel->where('original_url', $originalUrl)
-                            // Optional: Add ->where('user_id', $userId) if checking per-user
-                            ->first();
+            // Optional: Add ->where('user_id', $userId) if checking per-user
+            ->first();
 
         if ($existing) {
             // URL already shortened, return existing short URL
             $shortUrl = base_url($existing['short_code']); // base_url() gets your app.baseURL
             return redirect()->back()->withInput()->with('success', 'URL already shortened!')
-                                     ->with('short_url', $shortUrl);
+                ->with('short_url', $shortUrl);
         }
         // --- End Optional Check ---
 
@@ -70,14 +72,14 @@ class UrlController extends BaseController
         // 4. Prepare data for insertion (initially without short_code)
         $data = [
             'original_url' => $originalUrl,
-            'user_id'      => null, // TODO: Set this later from logged-in user session if implementing auth
-            'visit_count'  => 0,
+            'user_id' => null, // TODO: Set this later from logged-in user session if implementing auth
+            'visit_count' => 0,
         ];
 
         // 5. Insert into database to get the ID
         $insertedId = $urlModel->insert($data, true); // true returns the insert ID
 
-        if (! $insertedId) {
+        if (!$insertedId) {
             // Database insert failed
             log_message('error', 'Failed to insert URL into database: ' . print_r($urlModel->errors(), true));
             return redirect()->back()->withInput()->with('error', 'Could not save the URL. Please try again later.');
@@ -87,22 +89,24 @@ class UrlController extends BaseController
         $shortCode = $this->encodeBase62($insertedId);
 
         // 7. Update the record with the generated short code
-        if (! $urlModel->update($insertedId, ['short_code' => $shortCode])) {
+        if (!$urlModel->update($insertedId, ['short_code' => $shortCode])) {
             // Database update failed - handle this edge case (maybe delete the inserted row?)
             log_message('error', 'Failed to update URL record ID ' . $insertedId . ' with short_code: ' . print_r($urlModel->errors(), true));
             // Consider deleting the record: $urlModel->delete($insertedId);
             return redirect()->back()->withInput()->with('error', 'Could not generate the short URL code. Please try again later.');
         }
 
-        // 8. Generate the full short URL
-        $shortUrl = base_url($shortCode); // base_url() gets your app.baseURL + the code
+        // 8. Generate the full short URL using base_url()
+    $shortUrl = base_url($shortCode); // e.g., http://localhost:8080/5
 
-        // 9. Redirect back with success message and the short URL
-        // Use flashdata so the message is shown only on the next request
-        return redirect()->to('/') // Redirect to the main form page
-                         ->with('success', 'URL shortened successfully!')
-                         ->with('short_url', $shortUrl);
-    }
+    log_message('debug', "Generated full short URL: {$shortUrl}");
+
+    // 9. Redirect back with success message and the *full* short URL
+    return redirect()->to('/') // Redirect to the main form page
+                     ->with('success', 'URL shortened successfully!')
+                     ->with('short_url', $shortUrl); // Use the original flashdata key 'short_url'
+                     // ->with('short_code_only', $shortCode); // Remove or comment out the test key
+}
 
     /**
      * Encodes an integer ID into a base62 string.
@@ -134,18 +138,46 @@ class UrlController extends BaseController
     // We'll also need a decodeBase62 later for potential custom code lookups, but not for basic ID->code generation.
 
     /**
-     * Redirects a short code to its original URL.
-     * (To be implemented later)
+     * Handles redirection from short code to original URL.
+     * Increments the visit count.
+     *
      * @param string|null $shortCode The short code from the URL segment
      */
     public function redirect($shortCode = null)
     {
-        // Lookup shortCode in UrlModel, increment count, redirect here
-        if (empty($shortCode)) {
-            // Maybe redirect to home or show an error
-            return redirect()->to('/')->with('error', 'No short code provided.');
+        // ... (logging and validation remain the same) ...
+
+        // 2. Find the URL record in the database
+        $urlModel = new UrlModel();
+        $urlRecord = $urlModel->where('short_code', $shortCode)
+            ->select('id, original_url, visit_count') // Ensure visit_count is selected
+            ->first();
+
+        // ... (logging for lookup result) ...
+
+        // 3. Handle Not Found
+        if ($urlRecord === null) {
+            throw PageNotFoundException::forPageNotFound('Sorry, that short link was not found.');
         }
-        echo "UrlController::redirect() - Redirecting for code: " . esc($shortCode); // esc() is for security
+
+        // --- 4. Increment Visit Count (Manual Way) ---
+        $newVisitCount = $urlRecord['visit_count'] + 1;
+        $updateData = ['visit_count' => $newVisitCount];
+
+        log_message('debug', "Attempting to update visit count for ID: {$urlRecord['id']} to {$newVisitCount}");
+
+        if (!$urlModel->update($urlRecord['id'], $updateData)) {
+            // Log the error if update fails, but maybe don't stop the redirect
+            log_message('error', "Failed to update visit count for ID: {$urlRecord['id']}. Model errors: " . print_r($urlModel->errors(), true));
+        } else {
+            log_message('debug', "Visit count updated successfully for ID: {$urlRecord['id']}.");
+        }
+        // --- End Manual Increment ---
+
+
+        // 5. Perform the Redirect
+        log_message('info', "Redirecting short_code '{$shortCode}' to '{$urlRecord['original_url']}'");
+        return redirect()->to($urlRecord['original_url'], 301);
     }
 
     /**

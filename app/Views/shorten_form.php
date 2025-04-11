@@ -18,17 +18,19 @@
 
         <?php if (session()->getFlashdata('success')): ?>
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline"><?= session()->getFlashdata('success') ?></span>
+                <span class="block sm:inline"><?= esc(session()->getFlashdata('success')) ?></span>
             </div>
         <?php endif; ?>
+
         <?php if (session()->getFlashdata('error')): ?>
             <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline"><?= session()->getFlashdata('error') ?></span>
+                <span class="block sm:inline"><?= esc(session()->getFlashdata('error')) ?></span>
             </div>
         <?php endif; ?>
+
         <?php if (isset($validation)): ?>
             <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <strong class="font-bold">Oops!</strong>
+                <strong class="font-bold">Oops! Please fix the errors:</strong>
                 <ul class="mt-2 list-disc list-inside">
                     <?php foreach ($validation->getErrors() as $error): ?>
                         <li><?= esc($error) ?></li>
@@ -60,12 +62,17 @@
         </form>
 
         <div id="result-area" class="mt-6 text-center">
+            <?php ?>
             <?php if (session()->getFlashdata('short_url')): ?>
                 <div class="bg-gray-200 p-4 rounded border border-gray-300">
                     <p class="text-gray-700 mb-2">Your Short URL:</p>
-                    <a href="<?= esc(session()->getFlashdata('short_url'), 'url') ?>" target="_blank"
+                    <?php $shortUrlFull = session()->getFlashdata('short_url'); ?>
+
+                    <a href="<?= $shortUrlFull ?>" target="_blank"
                         class="text-blue-600 font-bold break-all hover:underline">
-                        <?= esc(session()->getFlashdata('short_url')) ?>
+
+                        <?php ?>
+                        <?= esc($shortUrlFull) ?>
                     </a>
                 </div>
             <?php endif; ?>
