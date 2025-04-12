@@ -4,39 +4,42 @@ FROM php:8.2-apache
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies + PHP extensions + Node.js/npm...
-# Includes libraries for common extensions (gd, intl, pgsql) and tools (git, composer, node)
+# Install system dependencies & PHP Extension dependencies first
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Common tools
     git \
     zip \
     unzip \
     curl \
     gnupg \
-    # PHP Extension Dependencies
-    libpq-dev \       # For PostgreSQL (pdo_pgsql, pgsql)
-    libicu-dev \      # For Intl (intl)
-    libpng-dev \      # For GD
-    libjpeg-dev \     # For GD
-    libwebp-dev \     # For GD
-    zlib1g-dev \      # For GD (and other compression)
-    # Install PHP Extensions needed for CodeIgniter + Postgres + GD
-    && docker-php-ext-configure gd --with-jpeg --with-webp \
+    libpq-dev \
+    libicu-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libwebp-dev \
+    zlib1g-dev \
+    # Clean up apt cache for this layer
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP Extensions using the installed dependencies
+RUN docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) gd \
     && docker-php-ext-install pdo pdo_pgsql pgsql \
     && docker-php-ext-install intl \
-    && docker-php-ext-install exif \
-    # Install Node.js (LTS version)
-    && curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
-    && apt-get install -y nodejs \
-    # Clean up apt cache
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    && docker-php-ext-install exif
 
-# Install Composer globally
+# Install Node.js LTS using NodeSource repository
+# curl and gnupg must be installed from the previous step
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get update && apt-get install -y nodejs \
+    # Clean up again after installing nodejs
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Composer globally (keep this separate)
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configure Apache
+# Configure Apache (keep this separate)
 RUN a2enmod rewrite
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 
