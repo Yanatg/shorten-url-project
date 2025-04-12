@@ -7,28 +7,23 @@ use CodeIgniter\Router\RouteCollection;
  */
 
 // --- Default Home Route ---
-// Map the root URL ('/') to the 'index' method of 'UrlController'
 $routes->get('/', 'UrlController::index');
 
-// --- URL Creation Route ---
-// Map POST requests to '/create' to the 'create' method of 'UrlController'
-// Give it a name so we can use url_to('url.create') in the form action
-// Updated to match url_to convention used in the view:
+// --- Specific GET Routes ---
+$routes->get('/register', 'AuthController::registerShow', ['as' => 'AuthController::registerShow']);
+$routes->get('/login', 'AuthController::loginShow', ['as' => 'AuthController::loginShow']);
+$routes->get('/logout', 'AuthController::logout', ['as' => 'AuthController::logout']);
+$routes->get('/simple', 'SimpleTestController::index'); // Or ::simpletest if that's the method name
+// $routes->get('/history', 'UrlController::history'); // Add history route here when ready
+
+// --- Specific POST Routes ---
 $routes->post('/create', 'UrlController::create', ['as' => 'UrlController::create']);
+$routes->post('/register', 'AuthController::registerAttempt', ['as' => 'AuthController::registerAttempt']);
+$routes->post('/login', 'AuthController::loginAttempt', ['as' => 'AuthController::loginAttempt']);
 
-// --- Short URL Redirection Route ---
-// Map GET requests with any single segment after the base URL (e.g., /aBcDeF)
-// to the 'redirect' method of 'UrlController', passing the segment as an argument ($1)
-// IMPORTANT: Place this *after* other specific GET routes (like '/', '/history' etc. if you add them later)
-// to avoid it capturing those URLs.
+// --- Wildcard Redirection Route ---
+// !! MUST BE PLACED AFTER other specific GET routes !!
 $routes->get('/(:segment)', 'UrlController::redirect/$1');
-
-
-// --- Optional: Route for History Page (if implementing later) ---
-// $routes->get('/history', 'UrlController::history', ['as' => 'url.history', 'filter' => 'login']); // 'login' filter assumes auth setup
-
-// --- Add any other specific routes ABOVE the /(:segment) route ---
-
 
 /*
  * --------------------------------------------------------------------
