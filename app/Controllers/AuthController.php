@@ -21,7 +21,6 @@ class AuthController extends BaseController
      */
     public function registerAttempt()
     {
-        // Validation Rules
         $rules = [
             'email' => [
                 'label' => 'Email',
@@ -37,14 +36,29 @@ class AuthController extends BaseController
             'password_confirm' => [
                 'label' => 'Password Confirmation',
                 'rules' => 'required|matches[password]',
+                'errors' => [
+                    'matches' => 'The confirmation password does not match the password entered.'
+                ]
             ],
         ];
 
-        // Run Validation
-        if (!$this->validate($rules)) {
-            // Redirect back with validation errors
-            return redirect()->back()->withInput()->with('validation', $this->validator);
-        }
+        // 2. Run Validation
+    if (! $this->validate($rules)) {
+        // Validation Failed
+        log_message('debug', 'Validation failed during registration.');
+
+        // Get the errors as an array from the validator
+        $errors = $this->validator->getErrors();
+        log_message('debug', 'Validation Errors Array: ' . json_encode($errors));
+
+        // Redirect back passing the INPUT data and the ERRORS ARRAY
+        // Use a new key, e.g., 'validation_errors'
+        return redirect()->back()->withInput()->with('validation_errors', $errors);
+
+        // --- Remove or comment out the old redirect ---
+        // return redirect()->back()->withInput()->with('validation', $this->validator);
+    }
+
 
         // Validation passed, prepare user data
         $userModel = new UserModel();
@@ -52,6 +66,9 @@ class AuthController extends BaseController
             'email' => $this->request->getPost('email'),
             'password' => $this->request->getPost('password'),
         ];
+
+        // Add a log here too, just in case validation passes unexpectedly
+        log_message('debug', 'Register validation PASSED.');
 
         // Attempt to save the user (triggers hashPassword callback)
         if (!$userModel->save($userData)) {

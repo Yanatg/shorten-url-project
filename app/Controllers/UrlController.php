@@ -41,77 +41,95 @@ class UrlController extends BaseController
 
     /**
      * Handles the submission of the new URL form
-     * and creates the short URL.
+     * and creates the short URL. Checks for duplicates for logged-in users.
      */
     public function create()
     {
-        // Setup Validation Rules
+        // 1. Setup Validation Rules
         $validationRules = [
             'original_url' => [
                 'label' => 'URL',
                 'rules' => 'required|valid_url_strict|max_length[2048]',
-                'errors' => [
-                    'required' => 'Please enter a URL to shorten.',
-                    'valid_url_strict' => 'Please enter a valid URL including http:// or https://.',
-                    'max_length' => 'The URL you entered is too long.'
-                ]
+                'errors' => [ /* ... errors ... */ ]
             ]
         ];
 
-        // Run Validation
-        if (!$this->validate($validationRules)) {
-            // Validation failed
+        // 2. Run Validation
+        if (! $this->validate($validationRules)) {
             return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
-        // Validation passed, get the URL
+        // 3. Validation passed, get URL and User ID
         $originalUrl = $this->request->getPost('original_url');
         $urlModel = new UrlModel();
-
-        // Prepare data for insertion
         $session = session();
         $userId = $session->get('isLoggedIn') ? $session->get('user_id') : null;
 
+        // --- 4. Check for Duplicates IF User is Logged In ---
+        if ($userId !== null) {
+            $existing = $urlModel->where('original_url', $originalUrl)
+                                 ->where('user_id', $userId) // Check against this specific user
+                                 ->select('short_code')     // Only need the short_code
+                                 ->first();
+
+            if ($existing) {
+                // Match found for this user and this URL!
+                log_message('info', "User ID {$userId} submitted duplicate URL. Existing code: {$existing['short_code']}");
+                $shortCode = $existing['short_code'];
+                $shortUrl = site_url($shortCode); // Or base_url()
+
+                // Redirect back with existing info
+                return redirect()->to('/')
+                                 ->with('success', 'You have already shortened this URL:') // Use 'success' or a different key like 'info'
+                                 ->with('short_url', $shortUrl)
+                                 ->with('new_short_code', $shortCode); // Pass code for QR button
+            }
+        }
+        // --- End Duplicate Check ---
+
+        // 5. No duplicate found (or user not logged in), Proceed to Create New Entry
+        log_message('info', "Creating new short URL for '{$originalUrl}'" . ($userId ? " by user ID {$userId}" : " anonymously"));
+
         $data = [
             'original_url' => $originalUrl,
-            'user_id' => $userId,
-            'visit_count' => 0,
+            'user_id'      => $userId,
+            'visit_count'  => 0,
         ];
 
-        // Insert into database to get the ID
+        // 6. Insert into database to get the ID
         $insertedId = $urlModel->insert($data, true);
 
-        if (!$insertedId) {
+        if (! $insertedId) {
             log_message('error', 'Failed to insert URL into database: ' . print_r($urlModel->errors(), true));
             return redirect()->back()->withInput()->with('error', 'Could not save the URL. Please try again later.');
         }
 
-        // Generate short code from the insert ID (using base62)
+        // 7. Generate short code from the insert ID
         $shortCode = $this->encodeBase62($insertedId);
         log_message('debug', "Generated shortCode '{$shortCode}' for ID {$insertedId}");
 
-        // Update the record with the generated short code
+        // 8. Update the record with the generated short code
         $updateData = ['short_code' => $shortCode];
         $updateSuccess = $urlModel->update($insertedId, $updateData);
 
         if (!$updateSuccess) {
             log_message('error', "FAILED to update ID {$insertedId} with short_code '{$shortCode}'. Model errors: " . print_r($urlModel->errors(), true));
-
+            // Consider cleanup: $urlModel->delete($insertedId);
             return redirect()->back()->withInput()->with('error', 'Could not generate the short URL code. Please try again later.');
         } else {
-            log_message('debug', "Successfully updated ID {$insertedId} with short_code '{$shortCode}'.");
+             log_message('debug', "Successfully updated ID {$insertedId} with short_code '{$shortCode}'.");
         }
 
-        // Generate the full short URL
-        $shortUrl = site_url($shortCode);
+        // 9. Generate the full short URL
+        $shortUrl = site_url($shortCode); // Or base_url()
 
         log_message('debug', "Generated full short URL: {$shortUrl}");
 
-        // Redirect back with success message, full URL, AND the short code itself
+        // 10. Redirect back with success message and the NEW short URL info
         return redirect()->to('/')
-            ->with('success', 'URL shortened successfully!')
-            ->with('short_url', $shortUrl)
-            ->with('new_short_code', $shortCode);
+                         ->with('success', 'URL shortened successfully!')
+                         ->with('short_url', $shortUrl)
+                         ->with('new_short_code', $shortCode);
     }
 
     /**

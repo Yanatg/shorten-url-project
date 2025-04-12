@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="<?= base_url('css/style.css') ?>">
 </head>
 
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-blue-100 flex items-center justify-center min-h-screen">
 
     <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h1 class="text-2xl font-bold mb-6 text-center text-gray-700">Login to Your Account</h1>
