@@ -35,7 +35,7 @@ class UrlController extends BaseController
                 ->orderBy('created_at', 'DESC')
                 ->findAll();
         }
-        
+
         return view('shorten_form', $data);
     }
 
@@ -50,12 +50,12 @@ class UrlController extends BaseController
             'original_url' => [
                 'label' => 'URL',
                 'rules' => 'required|valid_url_strict|max_length[2048]',
-                'errors' => [ /* ... errors ... */ ]
+                'errors' => [ /* ... errors ... */]
             ]
         ];
 
         // 2. Run Validation
-        if (! $this->validate($validationRules)) {
+        if (!$this->validate($validationRules)) {
             return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
@@ -68,9 +68,9 @@ class UrlController extends BaseController
         // --- 4. Check for Duplicates IF User is Logged In ---
         if ($userId !== null) {
             $existing = $urlModel->where('original_url', $originalUrl)
-                                 ->where('user_id', $userId) // Check against this specific user
-                                 ->select('short_code')     // Only need the short_code
-                                 ->first();
+                ->where('user_id', $userId) // Check against this specific user
+                ->select('short_code')     // Only need the short_code
+                ->first();
 
             if ($existing) {
                 // Match found for this user and this URL!
@@ -80,9 +80,9 @@ class UrlController extends BaseController
 
                 // Redirect back with existing info
                 return redirect()->to('/')
-                                 ->with('success', 'You have already shortened this URL:') // Use 'success' or a different key like 'info'
-                                 ->with('short_url', $shortUrl)
-                                 ->with('new_short_code', $shortCode); // Pass code for QR button
+                    ->with('success', 'You have already shortened this URL:') // Use 'success' or a different key like 'info'
+                    ->with('short_url', $shortUrl)
+                    ->with('new_short_code', $shortCode); // Pass code for QR button
             }
         }
         // --- End Duplicate Check ---
@@ -92,14 +92,14 @@ class UrlController extends BaseController
 
         $data = [
             'original_url' => $originalUrl,
-            'user_id'      => $userId,
-            'visit_count'  => 0,
+            'user_id' => $userId,
+            'visit_count' => 0,
         ];
 
         // 6. Insert into database to get the ID
         $insertedId = $urlModel->insert($data, true);
 
-        if (! $insertedId) {
+        if (!$insertedId) {
             log_message('error', 'Failed to insert URL into database: ' . print_r($urlModel->errors(), true));
             return redirect()->back()->withInput()->with('error', 'Could not save the URL. Please try again later.');
         }
@@ -117,8 +117,16 @@ class UrlController extends BaseController
             // Consider cleanup: $urlModel->delete($insertedId);
             return redirect()->back()->withInput()->with('error', 'Could not generate the short URL code. Please try again later.');
         } else {
-             log_message('debug', "Successfully updated ID {$insertedId} with short_code '{$shortCode}'.");
+            log_message('debug', "Successfully updated ID {$insertedId} with short_code '{$shortCode}'.");
         }
+
+        // --- Add Logging --
+        $detectedBaseUrl = config('App')->baseURL;
+        $envBaseUrl = getenv('APP_BASE_URL'); // Check env var directly
+        // Log as ERROR level just to make them easy to find in logs
+        log_message('error', 'RUNTIME DEBUG: CI detected baseURL: ' . $detectedBaseUrl);
+        log_message('error', 'RUNTIME DEBUG: Env APP_BASE_URL value: ' . ($envBaseUrl ?: 'NOT SET OR EMPTY'));
+        // --- End Logging ---
 
         // 9. Generate the full short URL
         $shortUrl = site_url($shortCode); // Or base_url()
@@ -127,9 +135,9 @@ class UrlController extends BaseController
 
         // 10. Redirect back with success message and the NEW short URL info
         return redirect()->to('/')
-                         ->with('success', 'URL shortened successfully!')
-                         ->with('short_url', $shortUrl)
-                         ->with('new_short_code', $shortCode);
+            ->with('success', 'URL shortened successfully!')
+            ->with('short_url', $shortUrl)
+            ->with('new_short_code', $shortCode);
     }
 
     /**
@@ -294,5 +302,4 @@ class UrlController extends BaseController
             return redirect()->to('/')->with('error', 'Failed to delete the URL entry. Please try again.');
         }
     }
-
 }
