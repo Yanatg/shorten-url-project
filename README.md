@@ -1,68 +1,106 @@
-# CodeIgniter 4 Application Starter
+# Simple URL Shortener
 
-## What is CodeIgniter?
+A web application built with CodeIgniter 4 that allows users to shorten long URLs, generate QR codes, and view their history if logged in.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+## Features
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+* Shorten any valid URL into a shorter code.
+* Redirect from short URL to the original URL.
+* Track the number of visits for each short URL.
+* User registration and login.
+* Logged-in users can view a history of the URLs they have shortened, including visit stats.
+* Logged-in users can delete URLs from their history.
+* Generate QR codes for shortened URLs (displayed in a modal).
+* Anonymous URL shortening supported (history not tracked).
+* Duplicate URL checking for logged-in users (returns existing short URL).
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## Tech Stack
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+* **Framework:** CodeIgniter 4 (v4.6.0)
+* **Language:** PHP (v8.2 recommended, developed with 8.4.5)
+* **Database:** PostgreSQL
+* **Frontend Styling:** Tailwind CSS (compiled via npm)
+* **QR Code Generation:** `endroid/qr-code` library
+* **Development Server:** `php spark serve` / PHP Built-in Server
+* **Deployment Target:** Render (using Docker)
 
-## Installation & updates
+## Local Installation & Setup Guide
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+Follow these steps to set up the project for local development.
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+**Prerequisites:**
 
-## Setup
+* PHP (v8.1 or higher recommended, includes intl, mbstring, pgsql, gd, exif extensions)
+* Composer ([https://getcomposer.org/](https://getcomposer.org/))
+* Node.js & npm ([https://nodejs.org/](https://nodejs.org/)) - For Tailwind CSS compilation
+* PostgreSQL Server
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+**Steps:**
 
-## Important Change with index.php
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/Yanatg/shorten-url-project
+    cd shorten-url-project
+    ```
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+2.  **Install PHP Dependencies:**
+    ```bash
+    composer install
+    ```
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+3.  **Install Node.js Dependencies:**
+    ```bash
+    npm install
+    ```
 
-**Please** read the user guide for a better explanation of how CI4 works!
+4.  **Configure Environment:**
+    * Copy the example environment file:
+        ```bash
+        cp env .env.example
+        ```
+    * Open the `.env` file in a text editor.
+    * Set the `CI_ENVIRONMENT` to `development`:
+        ```dotenv
+        CI_ENVIRONMENT = development
+        ```
+    * Set the `app.baseURL` to your local development URL (important: include trailing slash!):
+        ```dotenv
+        app.baseURL = 'http://localhost:8080/'
+        ```
+    * Configure your **PostgreSQL database connection details**:
+        ```dotenv
+        database.default.hostname = localhost # Or your DB host
+        database.default.database = ci4_shorturl # Your DB name
+        database.default.username = postgres   # Your DB username
+        database.default.password = your_db_password # Your DB password
+        database.default.DBDriver = Postgre
+        database.default.port = 5432
+        ```
 
-## Repository Management
+5.  **Create Database:** Manually create the PostgreSQL database specified in your `.env` file (e.g., `ci4_shorturl`) using a tool like `psql` or pgAdmin.
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+6.  **Run Database Migrations:** This will create the `users` and `urls` tables.
+    ```bash
+    php spark migrate
+    ```
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+7.  **Compile CSS Assets:** Run your Tailwind build command. This might be:
+    ```bash
+    npm run build
+    ```
+    *(Or `npm run dev`, or `npx tailwindcss -i ... -o ...` - check your `package.json` scripts. Ensure the output is `public/css/style.css` or update the `<link>` tag in your views).*
 
-## Server Requirements
+8.  **Run the Development Server:**
+    ```bash
+    php spark serve
+    ```
+    You should now be able to access the application at `http://localhost:8080` (or the port specified by `spark serve`).
 
-PHP version 8.1 or higher is required, with the following extensions installed:
+## Deployment (Render Notes)
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+This application was deployed to Render using the **Docker** runtime.
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
-> - The end of life date for PHP 8.1 will be December 31, 2025.
-
-Additionally, make sure that the following extensions are enabled in your PHP:
-
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+1.  Refer to the `Dockerfile` and `docker/apache-vhost.conf` for the container setup (PHP 8.2, Apache, Node, Composer, required extensions).
+2.  Environment variables (Database credentials, `APP_BASE_URL`, `CI_ENVIRONMENT=production`, `APP_KEY`, `ENCRYPTION_KEY`) must be set in the Render service environment (linking the Database Environment Group is recommended).
+3.  The Tailwind CSS build (`npm run build`) is included in the Docker build process.
+4.  Database migrations (`php spark migrate`) **must be run manually** after deployment using a **Render Job**, as they failed during the Docker build step due to environment variable timing. Configure the Job with the same repository, linked database environment group, and the command `php spark migrate --all`.
