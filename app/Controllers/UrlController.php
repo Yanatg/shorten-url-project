@@ -17,12 +17,23 @@ class UrlController extends BaseController
      */
     public function index()
     {
-        // Remove the old echo message
-        // echo "UrlController::index() - URL Shortening Form will be here.";
+        $session = session();
+        $data = []; // Initialize data array to pass to the view
 
-        // Load and return the view file: app/Views/shorten_form.php
-        // We can also pass data to the view in an array as the second argument if needed
-        return view('shorten_form');
+        // Check if user is logged in
+        if ($session->get('isLoggedIn')) {
+            $userId = $session->get('user_id');
+            $urlModel = new UrlModel();
+
+            // Fetch URLs created by this user, newest first
+            $data['userUrls'] = $urlModel->where('user_id', $userId)
+                ->orderBy('created_at', 'DESC')
+                ->findAll(); // Get all records for now
+        }
+        // If not logged in, $data['userUrls'] will not be set
+
+        // Load the view, passing the fetched data (or empty array)
+        return view('shorten_form', $data);
     }
 
     /**
@@ -53,31 +64,29 @@ class UrlController extends BaseController
 
         // 3. Validation passed, get the URL
         $originalUrl = $this->request->getPost('original_url');
-
-        // --- Optional: Check if URL already exists (to avoid duplicates) ---
         $urlModel = new UrlModel();
-        $existing = $urlModel->where('original_url', $originalUrl)
-            // Optional: Add ->where('user_id', $userId) if checking per-user
-            ->first();
 
-        if ($existing) {
-            // URL already shortened, return existing short URL
-            $shortUrl = base_url($existing['short_code']); // base_url() gets your app.baseURL
-            return redirect()->back()->withInput()->with('success', 'URL already shortened!')
-                ->with('short_url', $shortUrl);
-        }
-        // --- End Optional Check ---
+        // --- Optional: Duplicate Check (remains the same) ---
+        // ...
 
+        // --- 4. Prepare data for insertion ---
+        // Get user ID from session if logged in
+        $session = session();
+        $userId = $session->get('isLoggedIn') ? $session->get('user_id') : null; // Get ID if logged in, else null
 
-        // 4. Prepare data for insertion (initially without short_code)
         $data = [
             'original_url' => $originalUrl,
-            'user_id' => null, // TODO: Set this later from logged-in user session if implementing auth
+            'user_id' => $userId, // <-- SET USER ID HERE
             'visit_count' => 0,
+            // short_code will be added later after insert
         ];
+        // --- End Prepare data ---
+
 
         // 5. Insert into database to get the ID
-        $insertedId = $urlModel->insert($data, true); // true returns the insert ID
+        $insertedId = $urlModel->insert($data, true);
+
+        // ... (Rest of the method: error check, encodeBase62, update, redirect - remain the same) ...
 
         if (!$insertedId) {
             // Database insert failed
@@ -90,23 +99,19 @@ class UrlController extends BaseController
 
         // 7. Update the record with the generated short code
         if (!$urlModel->update($insertedId, ['short_code' => $shortCode])) {
-            // Database update failed - handle this edge case (maybe delete the inserted row?)
+            // Database update failed
             log_message('error', 'Failed to update URL record ID ' . $insertedId . ' with short_code: ' . print_r($urlModel->errors(), true));
-            // Consider deleting the record: $urlModel->delete($insertedId);
             return redirect()->back()->withInput()->with('error', 'Could not generate the short URL code. Please try again later.');
         }
 
-        // 8. Generate the full short URL using base_url()
-    $shortUrl = base_url($shortCode); // e.g., http://localhost:8080/5
+        // 8. Generate the full short URL
+        $shortUrl = base_url($shortCode); // Or site_url($shortCode); if you preferred that
 
-    log_message('debug', "Generated full short URL: {$shortUrl}");
-
-    // 9. Redirect back with success message and the *full* short URL
-    return redirect()->to('/') // Redirect to the main form page
-                     ->with('success', 'URL shortened successfully!')
-                     ->with('short_url', $shortUrl); // Use the original flashdata key 'short_url'
-                     // ->with('short_code_only', $shortCode); // Remove or comment out the test key
-}
+        // 9. Redirect back with success message and the short URL
+        return redirect()->to('/')
+            ->with('success', 'URL shortened successfully!')
+            ->with('short_url', $shortUrl);
+    }
 
     /**
      * Encodes an integer ID into a base62 string.

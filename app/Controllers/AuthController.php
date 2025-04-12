@@ -136,9 +136,15 @@ class AuthController extends BaseController
      * Log the user out.
      * (To be implemented later)
      */
-    public function logout()
-    {
-        echo "Logging out..."; // Placeholder
-    }
+    /**
+ * Log the user out by destroying the session.
+ */
+public function logout()
+{
+    $session = session(); // Get session instance
+    $session->destroy(); // Remove all session data
 
+    // Redirect to login page with a success message
+    return redirect()->to('/')->with('success', 'You have been logged out successfully.');
+}
 }
