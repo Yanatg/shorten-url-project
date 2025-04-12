@@ -55,9 +55,7 @@ RUN npm install
 COPY . /var/www/html
 # --- End Application Code ---
 
-# --- Run Tailwind Build ---
-# Needs to run AFTER code is copied
-# Replace "npm run build" with your actual build script name if different
+# --- Build Tailwind CSS ---
 RUN npm run build
 # --- End Tailwind Build ---
 
