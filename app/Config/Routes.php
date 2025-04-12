@@ -21,6 +21,18 @@ $routes->post('/create', 'UrlController::create', ['as' => 'UrlController::creat
 $routes->post('/register', 'AuthController::registerAttempt', ['as' => 'AuthController::registerAttempt']);
 $routes->post('/login', 'AuthController::loginAttempt', ['as' => 'AuthController::loginAttempt']);
 
+// --- Add this route for QR Code generation ---
+$routes->get('/qrcode/(:segment)', 'UrlController::qrcode/$1', ['as' => 'url.qrcode']);
+
+// Route for deleting a URL
+$routes->post('/delete/(:num)', 'UrlController::delete/$1', [
+    'as' => 'UrlController::delete',
+    'filter' => 'authGuard' // <-- Use the string alias here
+]);
+
+// --- Wildcard should still be last among GET routes ---
+$routes->get('/(:segment)', 'UrlController::redirect/$1');
+
 // --- Wildcard Redirection Route ---
 // !! MUST BE PLACED AFTER other specific GET routes !!
 $routes->get('/(:segment)', 'UrlController::redirect/$1');

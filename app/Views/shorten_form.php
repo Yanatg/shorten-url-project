@@ -12,14 +12,17 @@
 </head>
 
 <body class="bg-gray-100 min-h-screen">
-<div class="bg-blue-500 text-white py-2 px-4 shadow-md">
+    <div class="bg-blue-500 text-white py-2 px-4 shadow-md">
         <div class="gap-4 mx-auto flex justify-end items-center">
-             <?php if (session()->get('isLoggedIn')): ?>
+            <?php if (session()->get('isLoggedIn')): ?>
                 <span class="text-sm mr-4">Welcome, <?= esc(session()->get('email')) ?>!</span>
-                <a href="<?= url_to('AuthController::logout') ?>" class="ml-auto text-sm text-gray-300 hover:text-white hover:underline font-semibold">Logout</a>
+                <a href="<?= url_to('AuthController::logout') ?>"
+                    class="ml-auto text-sm text-gray-300 hover:text-white hover:underline font-semibold">Logout</a>
             <?php else: ?>
-                <a href="<?= url_to('AuthController::loginShow') ?>" class="text-sm text-gray-300 hover:text-white hover:underline font-semibold mr-4">Login</a>
-                <a href="<?= url_to('AuthController::registerShow') ?>" class="text-sm text-gray-300 hover:text-white hover:underline font-semibold">Register</a>
+                <a href="<?= url_to('AuthController::loginShow') ?>"
+                    class="text-sm text-gray-300 hover:text-white hover:underline font-semibold mr-4">Login</a>
+                <a href="<?= url_to('AuthController::registerShow') ?>"
+                    class="text-sm text-gray-300 hover:text-white hover:underline font-semibold">Register</a>
             <?php endif; ?>
         </div>
     </div>
@@ -28,7 +31,8 @@
         <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-lg mx-auto mb-10">
             <h1 class="text-2xl font-bold mb-6 text-center text-gray-700">Shorten a Long URL</h1>
             <?php if (session()->getFlashdata('success')): ?>
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4"
+                    role="alert">
                     <span class="block sm:inline"><?= esc(session()->getFlashdata('success')) ?></span>
                 </div>
             <?php endif; ?>
@@ -67,29 +71,44 @@
                 </div>
             </form>
             <div id="result-area" class="mt-6 text-center">
-                <?php if (session()->getFlashdata('short_url')): ?>
-                    <div class="bg-gray-200 p-4 rounded border border-gray-300">
-                        <p class="text-gray-700 mb-2">Your Short URL:</p>
-                        <?php $shortUrlFull = session()->getFlashdata('short_url'); ?>
-                        <a href="<?= $shortUrlFull ?>" target="_blank"
-                            class="text-blue-600 font-bold break-all hover:underline">
-                            <?= esc($shortUrlFull) ?>
-                        </a>
-                    </div>
-                <?php endif; ?>
+        <?php if (session()->getFlashdata('short_url')): ?>
+            <div class="bg-gray-200 p-4 rounded border border-gray-300 inline-block"> <p class="text-gray-700 mb-2">Your Short URL:</p>
+                <?php
+                    $shortUrlFull = session()->getFlashdata('short_url');
+                    // Get the short code itself from the flashdata we added
+                    $newShortCode = session()->getFlashdata('new_short_code');
+                ?>
+                <div class="flex items-center justify-center space-x-3"> <a href="<?= $shortUrlFull ?>" target="_blank"
+                        class="text-blue-600 font-bold break-all hover:underline">
+                        <?= esc($shortUrlFull) ?>
+                    </a>
+
+                    <?php if ($newShortCode): ?>
+                    <button type="button"
+                            title="View QR Code"
+                            class="qr-code-button bg-gray-500 hover:bg-gray-600 text-white text-xs font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline"
+                            data-shortcode="<?= esc($newShortCode, 'attr') ?>">
+                        QR
+                    </button>
+                    <?php endif; ?>
+                </div>
             </div>
-        </div> <div id="history-section" class="w-full max-w-4xl mx-auto">
-             <?php if (session()->get('isLoggedIn')): ?>
+        <?php endif; ?>
+    </div>
+        </div>
+        <div id="history-section" class="w-full max-w-4xl mx-auto">
+            <?php if (session()->get('isLoggedIn')): ?>
                 <h2 class="text-xl font-semibold mb-4 text-center text-gray-600">Your URL History</h2>
                 <?php if (!empty($userUrls)): ?>
                     <div class="overflow-x-auto relative shadow-md sm:rounded-lg bg-white p-4">
                         <table class="w-full text-sm text-left text-gray-500">
-                           <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                                 <tr>
                                     <th scope="col" class="py-3 px-6">Original URL</th>
                                     <th scope="col" class="py-3 px-6">Short URL</th>
                                     <th scope="col" class="py-3 px-6">Visits</th>
                                     <th scope="col" class="py-3 px-6">Created</th>
+                                    <th scope="col" class="py-3 px-6">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -97,7 +116,7 @@
                                     <tr class="bg-white border-b hover:bg-gray-50">
                                         <td class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap max-w-xs overflow-hidden overflow-ellipsis"
                                             title="<?= esc($url['original_url']) ?>">
-                                            
+                                            <?= esc(character_limiter($url['original_url'], 50)) ?>
                                         </td>
                                         <td class="py-4 px-6">
                                             <?php $shortLink = base_url($url['short_code']); ?>
@@ -111,25 +130,114 @@
                                         <td class="py-4 px-6 whitespace-nowrap">
                                             <?= esc(date('Y-m-d H:i', strtotime($url['created_at']))) ?>
                                         </td>
+                                        <td class="py-4 px-6 flex items-center space-x-2"> <button type="button"
+            title="View QR Code"
+            class="qr-code-button bg-blue-500 hover:bg-gray-600 text-white text-xs font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline"
+            data-shortcode="<?= esc($url['short_code'], 'attr') ?>">
+        QR
+    </button>
+
+    <form action="<?= url_to('UrlController::delete', $url['id']) // Pass URL ID to route ?>"
+          method="post"
+          onsubmit="return confirm('Are you sure you want to delete this URL entry?');"> <?= csrf_field() ?> <input type="hidden" name="_method" value="POST"> <button type="submit"
+                title="Delete URL"
+                class="bg-blue-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">
+            Delete
+        </button>
+    </form>
+    </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
                 <?php else: ?>
-                    <div class="bg-white p-6 rounded shadow-md text-center text-gray-500 mt-4 max-w-lg mx-auto">
-                         <p>You haven't shortened any URLs yet.</p>
-                     </div>
-                 <?php endif; ?>
-             <?php else: // User is not logged in ?>
-                 <div class="text-center text-gray-600 p-4 bg-yellow-50 rounded border border-yellow-200 max-w-md mx-auto">
-                     <p>Want to track your shortened URLs and view statistics?</p>
-                     <p class="mt-2">
-                         <a href="<?= url_to('AuthController::loginShow') ?>" class="text-blue-600 hover:underline font-semibold">Login</a>
-                         or
-                         <a href="<?= url_to('AuthController::registerShow') ?>" class="text-blue-600 hover:underline font-semibold">Create an Account</a>
-                     </p>
-                 </div>
-             <?php endif; ?>
-        </div> </div> </body>
+                <?php endif; ?>
+            <?php else: // User is not logged in ?>
+                <div class="text-center text-gray-600 p-4 bg-yellow-50 rounded border border-yellow-200 max-w-md mx-auto">
+                    <p>Want to track your shortened URLs and view statistics?</p>
+                    <p class="mt-2">
+                        <a href="<?= url_to('AuthController::loginShow') ?>"
+                            class="text-blue-600 hover:underline font-semibold">Login</a>
+                        or
+                        <a href="<?= url_to('AuthController::registerShow') ?>"
+                            class="text-blue-600 hover:underline font-semibold">Create an Account</a>
+                    </p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div id="qr-code-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-xs p-8 text-center relative">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">QR Code</h3>
+        <button id="modal-close-button" type="button" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-2xl font-bold leading-none">&times;</button>
+        <div class="mt-4 mb-4 min-h-[200px] flex items-center justify-center">
+            <img id="qr-code-image" src="" alt="QR Code will load here" class="max-w-full h-auto">
+        </div>
+        <p class="text-xs text-gray-500 break-all">Scans to: <span id="qr-code-url-display"></span></p>
+    </div>
+</div>
+</div>
+</body>
+<script>
+    // Get modal elements
+    const modal = document.getElementById('qr-code-modal');
+    const modalImage = document.getElementById('qr-code-image');
+    const modalUrlDisplay = document.getElementById('qr-code-url-display');
+    const closeButton = document.getElementById('modal-close-button');
+
+    // Get all QR code buttons
+    const qrButtons = document.querySelectorAll('.qr-code-button');
+
+    // Function to open the modal
+    function openModal(shortCode) {
+        if (!modal || !modalImage || !shortCode) return; // Basic check
+
+        const qrImageUrl = `/qrcode/${shortCode}`; // URL to our QR code endpoint
+        const fullShortUrl = `<?= rtrim(site_url(), '/') ?>/${shortCode}`; // Construct the display URL
+
+        modalImage.src = qrImageUrl; // Set the image source
+        modalUrlDisplay.textContent = fullShortUrl; // Display the URL text
+        modal.classList.remove('hidden'); // Show the modal
+    }
+
+    // Function to close the modal
+    function closeModal() {
+        if (!modal) return;
+        modalImage.src = ''; // Clear image src
+        modalUrlDisplay.textContent = '';
+        modal.classList.add('hidden'); // Hide the modal
+    }
+
+    // Add event listeners to all QR buttons
+    qrButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const shortCode = button.dataset.shortcode; // Get code from data attribute
+            openModal(shortCode);
+        });
+    });
+
+    // Add event listener for the close button
+    if (closeButton) {
+        closeButton.addEventListener('click', closeModal);
+    }
+
+    // Add event listener to close modal if clicking outside the content area
+    if (modal) {
+        modal.addEventListener('click', (event) => {
+            // Check if the click was directly on the modal background (not the content div)
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+    }
+
+    // Optional: Close modal on ESC key press
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+</script>
 </html>
