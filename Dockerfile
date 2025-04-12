@@ -47,11 +47,15 @@ RUN echo '<VirtualHost *:80>\n\
 # Copy existing application directory contents (use .dockerignore to exclude vendor, .env etc)
 COPY . /var/www/html
 
-# Set ownership for Apache user (www-data)
-# Make writable directory writable
-RUN chown -R www-data:www-data /var/www/html \
+# --- Create writable dirs and Set Permissions ---
+# Create writable and common subdirs first, then set ownership for the whole app,
+# then set specific permissions for the writable directory.
+RUN mkdir -p /var/www/html/writable/cache \
+             /var/www/html/writable/logs \
+             /var/www/html/writable/session \
+             /var/www/html/writable/uploads \
+    && chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/writable
-
 # --- Composer Install ---
 # Install dependencies AFTER copying code
 # Run as non-root user for better security practice if possible, but www-data might work
