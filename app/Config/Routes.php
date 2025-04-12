@@ -30,5 +30,3 @@ $routes->post('/delete/(:num)', 'UrlController::delete/$1', [
 ]);
 
 $routes->get('/(:segment)', 'UrlController::redirect/$1');
-
-$routes->get('/(:segment)', 'UrlController::redirect/$1');
