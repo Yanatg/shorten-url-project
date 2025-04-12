@@ -73,40 +73,58 @@ class Database extends Config
     //        ],
     //    ];
 
-    /**
-     * The default database connection.
-     *
-     * We leave hostname, username, password, and database blank by default.
-     * These should be configured via the .env file or environment variables.
-     * See CodeIgniter documentation for loading order.
-     * Environment variables (e.g., DATABASE_DEFAULT_HOSTNAME) take precedence.
-     *
-     * @var array<string, mixed>
-     */
-    public array $default = [
-        'DSN' => '',
-        'hostname' => '',
-        'username' => '',
-        'password' => '',
-        'database' => '',
-        'DBDriver' => 'Postgre',
-        'DBPrefix' => '',
-        'port' => 5432,
-        'pConnect' => false,
-        'DBDebug' => (ENVIRONMENT !== 'production'),
-        'charset' => 'utf8',
-        'DBCollat' => 'utf8_general_ci',
-        'swapPre' => '',
-        'encrypt' => false,
-        'compress' => false,
-        'strictOn' => false,
-        'failover' => [],
-        'saveQueries' => true,
-        'schema' => 'public',
+       /**
+        * Sample database connection for Postgre.
+        *
+        * @var array<string, mixed>
+        */
+    //    public array $default = [
+    //        'DSN'        => '',
+    //        'hostname'   => 'localhost',
+    //        'username'   => 'root',
+    //        'password'   => 'root',
+    //        'database'   => 'ci4',
+    //        'schema'     => 'public',
+    //        'DBDriver'   => 'Postgre',
+    //        'DBPrefix'   => '',
+    //        'pConnect'   => false,
+    //        'DBDebug'    => true,
+    //        'charset'    => 'utf8',
+    //        'swapPre'    => '',
+    //        'failover'   => [],
+    //        'port'       => 5432,
+    //        'dateFormat' => [
+    //            'date'     => 'Y-m-d',
+    //            'datetime' => 'Y-m-d H:i:s',
+    //            'time'     => 'H:i:s',
+    //        ],
+    //    ];
+
+       public array $default = [
+        'DSN'        => '',         // Set via ENV: DATABASE_DEFAULT_DSN (rarely needed if using other params)
+        'hostname'   => '',         // Set via ENV: DATABASE_DEFAULT_HOSTNAME
+        'username'   => '',         // Set via ENV: DATABASE_DEFAULT_USERNAME
+        'password'   => '',         // Set via ENV: DATABASE_DEFAULT_PASSWORD
+        'database'   => '',         // Set via ENV: DATABASE_DEFAULT_DATABASE
+        'DBDriver'   => 'Postgre',  // Set via ENV: DATABASE_DEFAULT_DBDRIVER (if different)
+        'DBPrefix'   => '',         // Set via ENV: DATABASE_DEFAULT_DBPREFIX
+        'port'       => 5432,       // Set via ENV: DATABASE_DEFAULT_PORT (if not 5432)
+        'pConnect'   => false,
+        // Set DBDebug based on environment; TRUE in dev/test, FALSE in production
+        'DBDebug'    => (ENVIRONMENT !== 'production'),
+        'charset'    => 'utf8',
+        'DBCollat'   => 'utf8_general_ci', // Collation often specific to DB driver/setup
+        'swapPre'    => '',
+        'encrypt'    => false,      // Set via ENV: DATABASE_DEFAULT_ENCRYPT
+        'compress'   => false,      // Set via ENV: DATABASE_DEFAULT_COMPRESS
+        'strictOn'   => false,      // Set via ENV: DATABASE_DEFAULT_STRICTON
+        'failover'   => [],
+        'saveQueries' => true,      // Save queries for timeline? Set via ENV: DATABASE_DEFAULT_SAVEQUERIES
+        'schema'     => 'public',   // Default PostgreSQL schema, Set via ENV: DATABASE_DEFAULT_SCHEMA
         'dateFormat' => [
-            'date' => 'Y-m-d',
+            'date'     => 'Y-m-d',
             'datetime' => 'Y-m-d H:i:s',
-            'time' => 'H:i:s',
+            'time'     => 'H:i:s',
         ],
     ];
 
@@ -174,29 +192,29 @@ class Database extends Config
      * @var array<string, mixed>
      */
     public array $tests = [
-        'DSN' => '',
-        'hostname' => '127.0.0.1',
-        'username' => '',
-        'password' => '',
-        'database' => ':memory:',
-        'DBDriver' => 'SQLite3',
-        'DBPrefix' => 'db_',  // Needed to ensure we're working correctly with prefixes live. DO NOT REMOVE FOR CI DEVS
-        'pConnect' => false,
-        'DBDebug' => true,
-        'charset' => 'utf8',
-        'DBCollat' => '',
-        'swapPre' => '',
-        'encrypt' => false,
-        'compress' => false,
-        'strictOn' => false,
-        'failover' => [],
-        'port' => 3306,
+        'DSN'         => '',
+        'hostname'    => '127.0.0.1',
+        'username'    => '',
+        'password'    => '',
+        'database'    => ':memory:',
+        'DBDriver'    => 'SQLite3',
+        'DBPrefix'    => 'db_',  // Needed to ensure we're working correctly with prefixes live. DO NOT REMOVE FOR CI DEVS
+        'pConnect'    => false,
+        'DBDebug'     => true,
+        'charset'     => 'utf8',
+        'DBCollat'    => '',
+        'swapPre'     => '',
+        'encrypt'     => false,
+        'compress'    => false,
+        'strictOn'    => false,
+        'failover'    => [],
+        'port'        => 3306,
         'foreignKeys' => true,
         'busyTimeout' => 1000,
-        'dateFormat' => [
-            'date' => 'Y-m-d',
+        'dateFormat'  => [
+            'date'     => 'Y-m-d',
             'datetime' => 'Y-m-d H:i:s',
-            'time' => 'H:i:s',
+            'time'     => 'H:i:s',
         ],
     ];
 
