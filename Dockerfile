@@ -84,4 +84,5 @@ EXPOSE 80
 
 # Start command: Just start Apache
 # Start command: List CSS dir, run migrations, clear cache, then start Apache
-CMD ls -l /var/www/html/public/css/ && php spark migrate --all && php spark cache:clear && apache2-foreground
+# Temporarily modify CMD to see logs - Change back after debugging!
+CMD php spark migrate --all && php spark cache:clear && apache2-foreground & sleep 5 && cat /var/log/apache2/error.log && sleep 3600
