@@ -4,15 +4,13 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\UrlModel;
-// use App\Models\UserModel; // Not directly used in this controller currently
 
 use Endroid\QrCode\Encoding\Encoding;
-use Endroid\QrCode\ErrorCorrectionLevel; // Base Enum/Class
+use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
-use Endroid\QrCode\RoundBlockSizeMode; // Base Enum/Class
+use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
-use CodeIgniter\Exceptions\PageNotFoundException; // For errors
-// Added for throwing 404 errors
+use CodeIgniter\Exceptions\PageNotFoundException;
 
 class UrlController extends BaseController
 {
@@ -23,7 +21,7 @@ class UrlController extends BaseController
     public function index()
     {
         $session = session();
-        $data = []; // Initialize data array to pass to the view
+        $data = [];
 
         // Check if user is logged in
         if ($session->get('isLoggedIn')) {
@@ -35,11 +33,9 @@ class UrlController extends BaseController
             helper('text');
             $data['userUrls'] = $urlModel->where('user_id', $userId)
                 ->orderBy('created_at', 'DESC')
-                ->findAll(); // Get all records for now
+                ->findAll();
         }
-        // If not logged in, $data['userUrls'] will not be set
-
-        // Load the view, passing the fetched data (or empty array)
+        
         return view('shorten_form', $data);
     }
 
@@ -49,7 +45,7 @@ class UrlController extends BaseController
      */
     public function create()
     {
-        // 1. Setup Validation Rules
+        // Setup Validation Rules
         $validationRules = [
             'original_url' => [
                 'label' => 'URL',
@@ -62,32 +58,27 @@ class UrlController extends BaseController
             ]
         ];
 
-        // 2. Run Validation
+        // Run Validation
         if (!$this->validate($validationRules)) {
             // Validation failed
             return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
-        // 3. Validation passed, get the URL
+        // Validation passed, get the URL
         $originalUrl = $this->request->getPost('original_url');
         $urlModel = new UrlModel();
 
-        // --- Optional: Duplicate Check ---
-        // Consider adding duplicate check logic here if desired
-        // --- End Optional Check ---
-
-        // 4. Prepare data for insertion
+        // Prepare data for insertion
         $session = session();
         $userId = $session->get('isLoggedIn') ? $session->get('user_id') : null;
 
         $data = [
             'original_url' => $originalUrl,
-            'user_id' => $userId, // Save user ID if logged in
+            'user_id' => $userId,
             'visit_count' => 0,
-            // short_code will be added later
         ];
 
-        // 5. Insert into database to get the ID
+        // Insert into database to get the ID
         $insertedId = $urlModel->insert($data, true);
 
         if (!$insertedId) {
@@ -95,33 +86,32 @@ class UrlController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Could not save the URL. Please try again later.');
         }
 
-        // 6. Generate short code from the insert ID (using base62)
+        // Generate short code from the insert ID (using base62)
         $shortCode = $this->encodeBase62($insertedId);
         log_message('debug', "Generated shortCode '{$shortCode}' for ID {$insertedId}");
 
-        // 7. Update the record with the generated short code
+        // Update the record with the generated short code
         $updateData = ['short_code' => $shortCode];
         $updateSuccess = $urlModel->update($insertedId, $updateData);
 
         if (!$updateSuccess) {
             log_message('error', "FAILED to update ID {$insertedId} with short_code '{$shortCode}'. Model errors: " . print_r($urlModel->errors(), true));
-            // Consider deleting the record if update fails: $urlModel->delete($insertedId);
+
             return redirect()->back()->withInput()->with('error', 'Could not generate the short URL code. Please try again later.');
         } else {
             log_message('debug', "Successfully updated ID {$insertedId} with short_code '{$shortCode}'.");
         }
 
-        // 8. Generate the full short URL
-        $shortUrl = site_url($shortCode); // Or base_url()
-        // Note: $shortCode variable holds just the code, e.g., 'j'
+        // Generate the full short URL
+        $shortUrl = site_url($shortCode);
 
         log_message('debug', "Generated full short URL: {$shortUrl}");
 
-        // 9. Redirect back with success message, full URL, AND the short code itself
+        // Redirect back with success message, full URL, AND the short code itself
         return redirect()->to('/')
             ->with('success', 'URL shortened successfully!')
-            ->with('short_url', $shortUrl)         // For display/linking
-            ->with('new_short_code', $shortCode); // Pass the code for the QR button
+            ->with('short_url', $shortUrl)
+            ->with('new_short_code', $shortCode);
     }
 
     /**
@@ -134,18 +124,18 @@ class UrlController extends BaseController
     {
         log_message('debug', "--- Redirect method started. Received shortCode: '{$shortCode}' ---");
 
-        // 1. Validate input
+        // Validate input
         if (empty($shortCode)) {
             log_message('warning', 'Redirect attempt with empty shortCode.');
             throw PageNotFoundException::forPageNotFound('No short code provided.');
         }
 
-        // 2. Find the URL record in the database
+        // Find the URL record in the database
         $urlModel = new UrlModel();
         log_message('debug', "Looking up short_code: '{$shortCode}' in database.");
 
         $urlRecord = $urlModel->where('short_code', $shortCode)
-            ->select('id, original_url, visit_count') // Select only needed fields
+            ->select('id, original_url, visit_count')
             ->first();
 
         // Log the result
@@ -155,12 +145,12 @@ class UrlController extends BaseController
             log_message('debug', "Database lookup SUCCEEDED for shortCode: '{$shortCode}'. Record found: " . print_r($urlRecord, true));
         }
 
-        // 3. Handle Not Found
+        // Handle Not Found
         if ($urlRecord === null) {
             throw PageNotFoundException::forPageNotFound('Sorry, that short link was not found.');
         }
 
-        // 4. Increment Visit Count (Manual Way)
+        // Increment Visit Count (Manual Way)
         $newVisitCount = $urlRecord['visit_count'] + 1;
         $updateData = ['visit_count' => $newVisitCount];
 
@@ -168,14 +158,12 @@ class UrlController extends BaseController
 
         if (!$urlModel->update($urlRecord['id'], $updateData)) {
             log_message('error', "Failed to update visit count for ID: {$urlRecord['id']}. Model errors: " . print_r($urlModel->errors(), true));
-            // Decide if you want to stop redirect on count failure, usually not.
         } else {
             log_message('debug', "Visit count updated successfully for ID: {$urlRecord['id']}.");
         }
 
-        // 5. Perform the Redirect
+        // Perform the Redirect
         log_message('info', "Redirecting short_code '{$shortCode}' to '{$urlRecord['original_url']}'");
-        // Use a 301 redirect (Moved Permanently)
         return redirect()->to($urlRecord['original_url'], 301);
     }
 
@@ -191,28 +179,27 @@ class UrlController extends BaseController
             throw PageNotFoundException::forPageNotFound('No short code provided for QR code.');
         }
 
-        // Optional: Verify the shortCode actually exists
         $urlModel = new UrlModel();
         if (!$urlModel->where('short_code', $shortCode)->select('id')->first()) {
             throw PageNotFoundException::forPageNotFound('Short code not found for QR code generation.');
         }
 
         // Construct the full URL that the QR code should point to
-        $fullShortUrl = site_url($shortCode); // Or base_url($shortCode)
+        $fullShortUrl = site_url($shortCode);
 
         log_message('debug', "Attempting basic QR generation for: {$fullShortUrl}");
 
         try {
-            // 1. Create QR Code object with data ONLY
+            // Create QR Code object with data ONLY
             $qrCode = new QrCode($fullShortUrl);
 
-            // 2. Create writer
+            // Create writer
             $writer = new PngWriter();
 
-            // 3. Write the basic QR code (No extra configuration options)
+            // Write the basic QR code
             $result = $writer->write($qrCode);
 
-            // 4. Output the result
+            // Output the result
             $this->response->setHeader('Content-Type', $result->getMimeType());
             $this->response->setBody($result->getString());
             return $this->response;
@@ -232,7 +219,6 @@ class UrlController extends BaseController
      */
     private function encodeBase62(int $number): string
     {
-        // For production, consider moving this to a Helper
         $chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $base = strlen($chars);
         $encoded = '';
@@ -258,13 +244,11 @@ class UrlController extends BaseController
      */
     public function delete($id = null)
     {
-        // Double check login status (though filter should handle it)
         $session = session();
         if (!$session->get('isLoggedIn')) {
             return redirect()->to('/login')->with('error', 'Authentication required.');
         }
 
-        // Validate ID
         if (empty($id)) {
             return redirect()->to('/')->with('error', 'Invalid URL ID provided for deletion.');
         }
@@ -272,10 +256,9 @@ class UrlController extends BaseController
         $userId = $session->get('user_id');
         $urlModel = new UrlModel();
 
-        // Find the URL record *and* verify it belongs to the current user
         $urlRecord = $urlModel->where('id', $id)
-            ->where('user_id', $userId) // CRITICAL: Ensure ownership
-            ->select('id') // Only need ID for deletion check
+            ->where('user_id', $userId)
+            ->select('id')
             ->first();
 
         // Check if record exists and belongs to user

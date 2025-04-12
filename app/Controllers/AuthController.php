@@ -21,7 +21,7 @@ class AuthController extends BaseController
      */
     public function registerAttempt()
     {
-        // 1. Define Validation Rules
+        // Validation Rules
         $rules = [
             'email' => [
                 'label' => 'Email',
@@ -32,7 +32,7 @@ class AuthController extends BaseController
             ],
             'password' => [
                 'label' => 'Password',
-                'rules' => 'required|min_length[8]', // Add more complexity rules if desired
+                'rules' => 'required|min_length[8]',
             ],
             'password_confirm' => [
                 'label' => 'Password Confirmation',
@@ -40,48 +40,39 @@ class AuthController extends BaseController
             ],
         ];
 
-        // 2. Run Validation
+        // Run Validation
         if (!$this->validate($rules)) {
             // Redirect back with validation errors
             return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
-        // 3. Validation passed, prepare user data
+        // Validation passed, prepare user data
         $userModel = new UserModel();
         $userData = [
             'email' => $this->request->getPost('email'),
-            'password' => $this->request->getPost('password'), // Pass plain text, model callback will hash it
+            'password' => $this->request->getPost('password'),
         ];
 
-        // 4. Attempt to save the user (triggers hashPassword callback)
+        // Attempt to save the user (triggers hashPassword callback)
         if (!$userModel->save($userData)) {
             log_message('error', 'User registration failed. Model Errors: ' . print_r($userModel->errors(), true));
             return redirect()->back()->withInput()->with('error', 'Registration failed. Please try again.');
         }
 
-        // 5. Registration successful! Redirect to login page (or wherever appropriate)
-        // We'll create the login page next. For now, maybe redirect home.
-        return redirect()->to('/login') // Assumes a '/login' route exists or will be created
+        // Registration successful, Redirect to login page
+        return redirect()->to('/login')
             ->with('success', 'Registration successful! Please log in.');
 
     }
 
-    /**
-     * Display the login form.
-     * (To be implemented later)
-     */
     public function loginShow()
     {
         return view('login_form');
     }
 
-    /**
-     * Process the login form submission.
-     * (To be implemented later)
-     */
     public function loginAttempt()
     {
-        // 1. Define Validation Rules
+        // Define Validation Rules
         $rules = [
             'email' => [
                 'label' => 'Email',
@@ -93,58 +84,46 @@ class AuthController extends BaseController
             ],
         ];
 
-        // 2. Run Validation
+        // Run Validation
         if (!$this->validate($rules)) {
             // Redirect back with validation errors
             return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
-        // 3. Validation passed, get credentials
+        // Validation passed, get credentials
         $email = $this->request->getPost('email');
         $password = $this->request->getPost('password');
 
-        // 4. Find user by email
+        // Find user by email
         $userModel = new UserModel();
         $user = $userModel->where('email', $email)->first();
 
-        // 5. Verify User and Password
-        // Check if user exists AND if the submitted password matches the stored hash
+        // Verify User and Password
         if ($user === null || !password_verify($password, $user['password'])) {
-            // Invalid credentials - Redirect back with a generic error
-            // Don't reveal whether the email exists or just the password was wrong
             return redirect()->back()->withInput()->with('error', 'Invalid login credentials.');
         }
 
-        // 6. Login Success! Prepare Session Data
-        $session = session(); // Get session instance
+        // Login Success! Prepare Session Data
+        $session = session();
         $sessionData = [
             'user_id' => $user['id'],
             'email' => $user['email'],
             'isLoggedIn' => true,
         ];
 
-        // 7. Set Session Data
+        // Set Session Data
         $session->set($sessionData);
 
-        // 8. Redirect to a logged-in area (e.g., homepage or dashboard/history later)
-        // Optional: Add a welcome flash message
+        // Redirect to a homepage
         return redirect()->to('/')->with('success', 'Login successful! Welcome back.'); // Redirect to homepage for now
 
     }
 
-    /**
-     * Log the user out.
-     * (To be implemented later)
-     */
-    /**
- * Log the user out by destroying the session.
- */
-public function logout()
-{
-    $session = session(); // Get session instance
-    $session->destroy(); // Remove all session data
+    public function logout()
+    {
+        $session = session();
+        $session->destroy();
 
-    // Redirect to login page with a success message
-    return redirect()->to('/')->with('success', 'You have been logged out successfully.');
-}
+        return redirect()->to('/')->with('success', 'You have been logged out successfully.');
+    }
 }

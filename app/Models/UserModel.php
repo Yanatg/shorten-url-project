@@ -39,12 +39,12 @@ class UserModel extends Model
     {
         // Check if a password is set in the data being passed to the model
         if (! isset($data['data']['password'])) {
-            return $data; // No password? Nothing to hash.
+            return $data;
         }
 
         // Hash the password using PHP's recommended default algorithm
         $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
 
-        return $data; // Return the data array with the hashed password
+        return $data;
     }
 }
