@@ -1,15 +1,17 @@
-# Use an official PHP image with Apache pre-installed
+# Use an official PHP image with Apache pre-installed (Using 8.2 as a stable choice)
 FROM php:8.2-apache
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies (git, zip for composer, postgresql client and dev files for pdo_pgsql)
-# Also install common PHP extensions needed by CodeIgniter and Postgres
-RUN apt-get update && apt-get install -y \
+# Install system dependencies + PHP extensions for CI4, Postgres, GD, and Node.js/npm
+# Add curl and gnupg for NodeSource setup
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     zip \
     unzip \
+    curl \
+    gnupg \
     libpq-dev \
     libicu-dev \
     libpng-dev \
@@ -21,8 +23,13 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo pdo_pgsql pgsql \
     && docker-php-ext-install intl \
     && docker-php-ext-install exif \
+    # Clean up apt lists
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install Node.js (e.g., LTS version - check NodeSource for current LTS) and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs
 
 # Install Composer globally
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -31,41 +38,46 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Enable Apache rewrite module
 RUN a2enmod rewrite
 
-# Configure Apache virtual host to point to the public directory
-# Create a new config file
+# Configure Apache virtual host to point to the public directory and allow .htaccess
 RUN echo '<VirtualHost *:80>\n\
     DocumentRoot /var/www/html/public\n\
     <Directory /var/www/html/public>\n\
         AllowOverride All\n\
         Require all granted\n\
     </Directory>\n\
-    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
-    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
+    ErrorLog ${APACHE_LOG_DIR}/error.log\n\    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
+# --- Build Frontend Assets ---
+# Copy package files first for Docker cache optimization
+COPY package.json package-lock.json* ./
+# Install Node dependencies
+RUN npm install
+# --- End Frontend Build ---
+
 # --- Application Code ---
-# Copy existing application directory contents (use .dockerignore to exclude vendor, .env etc)
+# Copy the rest of the application code (ensure .dockerignore excludes node_modules, vendor, writable, .env etc.)
 COPY . /var/www/html
 
-# --- Create writable dirs and Set Permissions ---
-# Create writable and common subdirs first, then set ownership for the whole app,
-# then set specific permissions for the writable directory.
+# Run Tailwind build AFTER code is copied (so it can scan .php files)
+# Replace "npm run build" if your script is named differently
+RUN npm run build
+
+# --- Composer Install ---
+# Install PHP dependencies AFTER copying code
+RUN composer install --no-interaction --no-dev --optimize-autoloader
+
+# --- Permissions ---
+# Create writable dirs (if they weren't copied/exist) and set permissions
 RUN mkdir -p /var/www/html/writable/cache \
              /var/www/html/writable/logs \
              /var/www/html/writable/session \
              /var/www/html/writable/uploads \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/writable
-# --- Composer Install ---
-# Install dependencies AFTER copying code
-# Run as non-root user for better security practice if possible, but www-data might work
-# USER www-data  # Might cause permission issues with later commands if not handled carefully
-RUN composer install --no-interaction --no-dev --optimize-autoloader
 
 # --- Expose Port & Start Command ---
 EXPOSE 80
 
 # Start command: Run migrations then start Apache
-# Note: Migrations run every time container starts. Better: Use Render Jobs or build step if possible.
-# For simplicity now, run before Apache starts.
 CMD php spark migrate --all && apache2-foreground
