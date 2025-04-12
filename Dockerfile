@@ -76,7 +76,7 @@ RUN composer install --no-interaction --no-dev --optimize-autoloader
 
 # --- Run Migrations ---
 # Now run migrations AFTER composer install and writable exists
-RUN php spark migrate --all
+# RUN php spark migrate --all
 # --- End Migrations ---
 
 # --- Expose Port & Start Command ---
