@@ -73,32 +73,43 @@ class Database extends Config
     //        ],
     //    ];
 
-       /**
-        * Sample database connection for Postgre.
-        *
-        * @var array<string, mixed>
-        */
-       public array $default = [
-           'DSN'        => '',
-           'hostname'   => 'localhost',
-           'username'   => 'root',
-           'password'   => 'root',
-           'database'   => 'ci4',
-           'schema'     => 'public',
-           'DBDriver'   => 'Postgre',
-           'DBPrefix'   => '',
-           'pConnect'   => false,
-           'DBDebug'    => true,
-           'charset'    => 'utf8',
-           'swapPre'    => '',
-           'failover'   => [],
-           'port'       => 5432,
-           'dateFormat' => [
-               'date'     => 'Y-m-d',
-               'datetime' => 'Y-m-d H:i:s',
-               'time'     => 'H:i:s',
-           ],
-       ];
+    /**
+     * The default database connection.
+     *
+     * We leave hostname, username, password, and database blank by default.
+     * These should be configured via the .env file or environment variables.
+     * See CodeIgniter documentation for loading order.
+     * Environment variables (e.g., DATABASE_DEFAULT_HOSTNAME) take precedence.
+     *
+     * @var array<string, mixed>
+     */
+    public array $default = [
+        'DSN' => '',
+        'hostname' => '',
+        'username' => '',
+        'password' => '',
+        'database' => '',
+        'DBDriver' => 'Postgre',
+        'DBPrefix' => '',
+        'port' => 5432,
+        'pConnect' => false,
+        'DBDebug' => (ENVIRONMENT !== 'production'),
+        'charset' => 'utf8',
+        'DBCollat' => 'utf8_general_ci',
+        'swapPre' => '',
+        'encrypt' => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'saveQueries' => true,
+        'schema' => 'public',
+        'dateFormat' => [
+            'date' => 'Y-m-d',
+            'datetime' => 'Y-m-d H:i:s',
+            'time' => 'H:i:s',
+        ],
+    ];
+
 
     //    /**
     //     * Sample database connection for SQLSRV.
@@ -163,29 +174,29 @@ class Database extends Config
      * @var array<string, mixed>
      */
     public array $tests = [
-        'DSN'         => '',
-        'hostname'    => '127.0.0.1',
-        'username'    => '',
-        'password'    => '',
-        'database'    => ':memory:',
-        'DBDriver'    => 'SQLite3',
-        'DBPrefix'    => 'db_',  // Needed to ensure we're working correctly with prefixes live. DO NOT REMOVE FOR CI DEVS
-        'pConnect'    => false,
-        'DBDebug'     => true,
-        'charset'     => 'utf8',
-        'DBCollat'    => '',
-        'swapPre'     => '',
-        'encrypt'     => false,
-        'compress'    => false,
-        'strictOn'    => false,
-        'failover'    => [],
-        'port'        => 3306,
+        'DSN' => '',
+        'hostname' => '127.0.0.1',
+        'username' => '',
+        'password' => '',
+        'database' => ':memory:',
+        'DBDriver' => 'SQLite3',
+        'DBPrefix' => 'db_',  // Needed to ensure we're working correctly with prefixes live. DO NOT REMOVE FOR CI DEVS
+        'pConnect' => false,
+        'DBDebug' => true,
+        'charset' => 'utf8',
+        'DBCollat' => '',
+        'swapPre' => '',
+        'encrypt' => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port' => 3306,
         'foreignKeys' => true,
         'busyTimeout' => 1000,
-        'dateFormat'  => [
-            'date'     => 'Y-m-d',
+        'dateFormat' => [
+            'date' => 'Y-m-d',
             'datetime' => 'Y-m-d H:i:s',
-            'time'     => 'H:i:s',
+            'time' => 'H:i:s',
         ],
     ];
 
